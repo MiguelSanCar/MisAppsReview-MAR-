@@ -650,3 +650,13 @@ html, body { overscroll-behavior-x: none; }
 .mal-preview p { margin: 0 0 8px; }
 .mal-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 @media (max-width: 420px) { .mal-row { flex-wrap: wrap; } .mal-row input { flex-basis: 100%; } .mal-row .btn { flex: 1; } }
+/* Avisos: «Visto» arriba, «×» por tarjeta y arrastre lateral (el contenedor recorta: la tarjeta no sale del cuadro) */
+.notif-seen-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 10px 6px; }
+.notif-li { overflow: hidden; border-radius: 10px; }
+.notif-card { display: flex; align-items: center; touch-action: pan-y; user-select: none; -webkit-user-select: none; transition: transform .18s ease, opacity .18s ease; }
+.notif-card.dragging { transition: none; }
+.notif-card .notif-item { flex: 1; width: auto; min-width: 0; }
+.notif-x { flex: none; width: 32px; height: 32px; margin-right: 4px; border: 0; border-radius: 50%; background: none; color: var(--muted); font-size: 1.3rem; line-height: 1; cursor: pointer; display: grid; place-items: center; }
+.notif-x:hover, .notif-x:focus-visible { background: var(--panel-2); color: var(--text); }
+@media (pointer: coarse) { .notif-x { width: 40px; height: 40px; } }
+@media (prefers-reduced-motion: reduce) { .notif-card { transition: none; } }

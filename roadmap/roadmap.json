@@ -2406,8 +2406,26 @@
           ]
         }
       ]
+    },
+    {
+      "id": "f30",
+      "name": "Fase 30 — Gestión de notificaciones",
+      "release": "1.16.1",
+      "summary": "El panel de notificaciones permite marcar todo como visto y eliminar avisos con una «×» o arrastrándolos",
+      "features": [
+        {
+          "id": "f30-notif",
+          "title": "Notificaciones: gestión de avisos",
+          "category": "Frontend",
+          "tasks": [
+            { "id": "30.1", "title": "Botón «Visto» arriba del panel para marcar todas las pendientes (ya no se marcan al abrir la campana)", "status": "hecho", "eta": "2026-10-23" },
+            { "id": "30.2", "title": "«×» en cada aviso y arrastre lateral para eliminarlo (sin salir del cuadro); endpoint DELETE y migración 16", "status": "hecho", "eta": "2026-10-23" },
+            { "id": "30.3", "title": "Pruebas, comprobación en navegador, documentación y versión 1.16.1", "status": "hecho", "eta": "2026-10-23" }
+          ]
+        }
+      ]
     }
   ],
-  "release": "1.16.0",
+  "release": "1.16.1",
   "etaNote": "Cada tarea indica su fecha de entrega: la real si está completada o la estimada si está pendiente. Las que dependen de un recurso externo no tienen fecha y llevan una nota con el motivo y el esfuerzo estimado."
 }

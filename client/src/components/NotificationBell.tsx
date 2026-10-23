@@ -17,10 +17,81 @@ function NotifPoster({ src }: { src: string | null }) {
 
 const when = (iso: string) => new Date(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }).replace(/\./g, '');
 
+const SWIPE_PX = 80; // arrastre mínimo para eliminar
+const FLY_MS = 180;
+
+/**
+ * Tarjeta de aviso: «×» para eliminarla y arrastre horizontal (a cualquier lado) que también la elimina. El contenedor
+ * recorta (`overflow: hidden`), así que la tarjeta nunca sale visualmente del cuadro de notificaciones.
+ */
+function NotifCard({ item, onOpen, onDismiss }: { item: NotificationItem; onOpen: () => void; onDismiss: () => void }) {
+  const [dx, setDx] = useState(0);
+  const [flying, setFlying] = useState(false);
+  const drag = useRef<{ x: number; y: number; id: number; active: boolean } | null>(null);
+  const moved = useRef(false);
+
+  function remove(dir: number) {
+    setFlying(true);
+    setDx(dir * (card.current?.offsetWidth ?? 360));
+    window.setTimeout(onDismiss, FLY_MS);
+  }
+  const card = useRef<HTMLDivElement>(null);
+
+  function down(e: React.PointerEvent) {
+    if (flying || (e.target as HTMLElement).closest('.notif-x')) return;
+    drag.current = { x: e.clientX, y: e.clientY, id: e.pointerId, active: false };
+    moved.current = false;
+  }
+  function move(e: React.PointerEvent) {
+    const d = drag.current;
+    if (!d || flying) return;
+    const ox = e.clientX - d.x;
+    if (!d.active) {
+      if (Math.abs(e.clientY - d.y) > 10 && Math.abs(e.clientY - d.y) > Math.abs(ox)) { drag.current = null; return; } // es un desplazamiento vertical
+      if (Math.abs(ox) < 6) return;
+      d.active = true;
+      moved.current = true;
+      card.current?.setPointerCapture(d.id);
+    }
+    setDx(ox);
+  }
+  function up() {
+    const d = drag.current;
+    drag.current = null;
+    if (!d?.active || flying) return;
+    if (Math.abs(dx) >= SWIPE_PX) remove(dx > 0 ? 1 : -1);
+    else setDx(0);
+  }
+
+  return (
+    <div
+      ref={card}
+      className={`notif-card ${drag.current?.active ? 'dragging' : ''} ${flying ? 'flying' : ''}`}
+      style={{ transform: dx ? `translateX(${dx}px)` : undefined, opacity: flying ? 0 : 1 - Math.min(Math.abs(dx) / 320, 0.5) }}
+      onPointerDown={down}
+      onPointerMove={move}
+      onPointerUp={up}
+      onPointerCancel={up}
+    >
+      <button type="button" className="notif-item" onClick={() => { if (moved.current) { moved.current = false; return; } onOpen(); }}>
+        <NotifPoster src={item.posterUrl} />
+        <span className="notif-body">
+          <strong>{item.title}</strong>
+          <span className="notif-text">{item.text}</span>
+          <time className="notif-time muted small" dateTime={item.createdAt}>{when(item.createdAt)}</time>
+        </span>
+        {!item.seen && <i className="notif-dot" role="img" aria-label="Nueva" />}
+      </button>
+      <button type="button" className="notif-x" aria-label={`Eliminar aviso de ${item.title}`} title="Eliminar" onClick={() => remove(1)}>×</button>
+    </div>
+  );
+}
+
 /**
  * Campana de notificaciones (arriba a la derecha, a la izquierda del interruptor de tema).
  *  - En rojo cuando hay novedades sin ver; al entrar con ellas sale un aviso a su izquierda unos segundos.
- *  - Al pulsarla se abre un panel «Notificaciones»; pulsar un aviso lleva a la ficha del contenido y no hace nada más.
+ *  - Al pulsarla se abre un panel «Notificaciones» con un botón «Visto» (marca todas) si hay pendientes; cada aviso se
+ *    elimina con su «×» o arrastrándolo; pulsar un aviso lleva a la ficha del contenido y no hace nada más.
  *  - La primera vez, una ventana que oscurece el resto pide elegir entre todos los contenidos o solo los favoritos.
  */
 export function NotificationBell() {
@@ -30,7 +101,6 @@ export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [intro, setIntro] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [fresh, setFresh] = useState<Set<number>>(new Set()); // los que eran nuevos al abrir el panel (llevan un punto)
   const [showToast, setShowToast] = useState(false);
   const box = useRef<HTMLDivElement>(null);
   const panel = useRef<HTMLDivElement>(null);
@@ -67,28 +137,26 @@ export function NotificationBell() {
     return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('touchstart', onDown); document.removeEventListener('keydown', onKey); };
   }, [open, close]);
 
-  function openPanel(items: NotificationItem[], unseen: number) {
-    setFresh(new Set(items.filter((i) => !i.seen).map((i) => i.id)));
+  function openPanel() {
     // El panel va fijo bajo la cabecera y pegado al borde derecho de la pantalla (no se recorta en el móvil)
     setTop(Math.round((btn.current?.getBoundingClientRect().bottom ?? 56) + 8));
     setOpen(true);
     setShowToast(false);
-    if (unseen > 0) n.markSeen();
   }
 
   function toggle() {
     if (open) return close();
     setShowToast(false);
     if (!n.introSeen) return setIntro(true); // primera vez: antes del panel, la ventana de elección
-    openPanel(n.items, n.unseen);
+    openPanel();
   }
 
   async function choose(favoritesOnly: boolean) {
     setBusy(true);
     try {
-      const r = await n.savePrefs({ favoritesOnly, introSeen: true });
+      await n.savePrefs({ favoritesOnly, introSeen: true });
       setIntro(false);
-      openPanel(r?.items ?? n.items, r?.unseen ?? n.unseen);
+      openPanel();
     } catch (e) {
       toast(errorText(e));
     } finally {
@@ -121,19 +189,17 @@ export function NotificationBell() {
             <h2 className="notif-title">Notificaciones</h2>
             <button type="button" className="icon-btn" aria-label="Cerrar notificaciones" onClick={() => close(true)}>×</button>
           </header>
+          {n.unseen > 0 && (
+            <div className="notif-seen-row">
+              <button type="button" className="btn small notif-seen" onClick={() => n.markSeen()}>Visto</button>
+              <span className="muted small">{n.unseen === 1 ? '1 pendiente' : `${n.unseen} pendientes`}</span>
+            </div>
+          )}
           {n.items.length ? (
             <ul className="notif-list">
               {n.items.map((i) => (
-                <li key={i.id}>
-                  <button type="button" className="notif-item" onClick={() => { close(); nav(`/content/${i.contentId}`); }}>
-                    <NotifPoster src={i.posterUrl} />
-                    <span className="notif-body">
-                      <strong>{i.title}</strong>
-                      <span className="notif-text">{i.text}</span>
-                      <time className="notif-time muted small" dateTime={i.createdAt}>{when(i.createdAt)}</time>
-                    </span>
-                    {fresh.has(i.id) && <i className="notif-dot" role="img" aria-label="Nueva" />}
-                  </button>
+                <li key={i.id} className="notif-li">
+                  <NotifCard item={i} onOpen={() => { close(); nav(`/content/${i.contentId}`); }} onDismiss={() => n.dismiss(i.id)} />
                 </li>
               ))}
             </ul>

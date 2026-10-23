@@ -30,11 +30,12 @@ interface Value extends NotificationsData {
   loaded: boolean;
   reload: () => Promise<NotificationsData | null>;
   markSeen: () => Promise<void>;
+  dismiss: (id: number) => Promise<void>;
   savePrefs: (p: { favoritesOnly?: boolean; introSeen?: boolean }) => Promise<NotificationsData | null>;
 }
 
 const EMPTY: NotificationsData = { items: [], unseen: 0, favoritesOnly: false, introSeen: true, checking: false };
-const Ctx = createContext<Value>({ ...EMPTY, loaded: false, reload: async () => null, markSeen: async () => {}, savePrefs: async () => null });
+const Ctx = createContext<Value>({ ...EMPTY, loaded: false, reload: async () => null, markSeen: async () => {}, dismiss: async () => {}, savePrefs: async () => null });
 export const useNotifications = () => useContext(Ctx);
 
 const POLL_MS = 5 * 60_000;
@@ -92,12 +93,21 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     } catch { /* se marcará la próxima vez */ }
   }, []);
 
+  /** Elimina un aviso (queda visto y oculto). Se quita al momento de la lista; si falla, se vuelve a leer. */
+  const dismiss = useCallback(async (id: number) => {
+    setData((d) => {
+      const gone = d.items.find((i) => i.id === id);
+      return { ...d, items: d.items.filter((i) => i.id !== id), unseen: gone && !gone.seen ? Math.max(0, d.unseen - 1) : d.unseen };
+    });
+    try { await api.del(`/api/notifications/${id}`); } catch { reload(); }
+  }, [reload]);
+
   const savePrefs = useCallback(async (p: { favoritesOnly?: boolean; introSeen?: boolean }) => {
     const r = await api.put<{ user: Me }>('/api/me/notifications', p);
     setUser(r.user);
     return reload();
   }, [setUser, reload]);
 
-  const value = useMemo<Value>(() => ({ ...data, loaded, reload, markSeen, savePrefs }), [data, loaded, reload, markSeen, savePrefs]);
+  const value = useMemo<Value>(() => ({ ...data, loaded, reload, markSeen, dismiss, savePrefs }), [data, loaded, reload, markSeen, dismiss, savePrefs]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

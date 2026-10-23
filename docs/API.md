@@ -168,7 +168,8 @@ Novedades de los contenidos de la lista (temporadas anunciadas o disponibles; pe
 | Método y ruta | Descripción |
 |---|---|
 | `GET /` | `{ items, unseen, favoritesOnly, introSeen, checking }`. Cada item: `id`, `kind` (`season_announced` \| `season_released` \| `related_movie` \| `season_removed` \| `movie_removed`), `text`, `title` (contenido de la lista que lo origina), `createdAt`, `seen`, `contentId` (a dónde lleva: la película nueva si la hay) y `posterUrl`. Máximo 50, de más a menos reciente. Solo los contenidos que siguen en la lista (salvo `movie_removed`, que se muestra aunque la película ya se haya quitado) y, con `favoritesOnly`, solo los favoritos. `checking: true` indica que hay un cálculo en marcha y conviene volver a preguntar en unos segundos |
-| `POST /seen` | Marca todo como visto (al abrir la campana): `{ ok, marked }` |
+| `POST /seen` | Marca todo como visto (botón «Visto» del panel; abrir la campana ya no lo hace): `{ ok, marked }` |
+| `DELETE /:id` | Elimina un aviso propio (botón «×» o arrastrarlo): queda visto y oculto, y no se vuelve a crear. 400 si el id no es válido, 404 si no existe, es ajeno o ya estaba eliminado |
 
 ## Roadmap (`/api/roadmap`, público)
 

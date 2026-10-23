@@ -254,6 +254,20 @@ describe('novedades: API y motor', () => {
     expect((await ana.get('/api/notifications')).body.items.length).toBeGreaterThan(0);
   });
 
+  it('eliminar un aviso lo oculta y lo da por visto; no se puede eliminar el ajeno ni repetir', async () => {
+    const antes = (await ana.get('/api/notifications')).body;
+    const id = antes.items[0].id;
+    expect((await new Client().del(`/api/notifications/${id}`)).status).toBe(401);
+    expect((await beto.del(`/api/notifications/${id}`)).status).toBe(404);
+    expect((await ana.del('/api/notifications/abc')).status).toBe(400);
+    expect((await ana.del(`/api/notifications/${id}`)).status).toBe(200);
+    expect((await ana.del(`/api/notifications/${id}`)).status).toBe(404);
+    const despues = (await ana.get('/api/notifications')).body;
+    expect(despues.items.length).toBe(antes.items.length - 1);
+    expect(despues.items.some((i: any) => i.id === id)).toBe(false);
+    expect(despues.unseen).toBeLessThanOrEqual(antes.unseen);
+  });
+
   it('una persona que añade el contenido después parte de lo que ya existía (sin avisos del pasado)', async () => {
     await beto.put(`/api/library/${bb.id}/status`, { status: 'VIENDO' });
     const id = (await beto.get('/api/auth/me')).body.user.id;

@@ -71,7 +71,7 @@ server/src
 
 ## Datos
 
-SQLite con `sql.js` (WebAssembly): la base vive **en memoria** y se vuelca a `data/mar.db` 300 ms después de cada escritura. Por eso solo puede haber **un proceso por fichero**. Las migraciones están numeradas (hoy 15) y nunca se edita una publicada.
+SQLite con `sql.js` (WebAssembly): la base vive **en memoria** y se vuelca a `data/mar.db` 300 ms después de cada escritura. Por eso solo puede haber **un proceso por fichero**. Las migraciones están numeradas (hoy 16) y nunca se edita una publicada.
 
 | Tabla | Contenido |
 |---|---|
@@ -82,7 +82,7 @@ SQLite con `sql.js` (WebAssembly): la base vive **en memoria** y se vuelca a `da
 | `friendships`, `invite_links` | Amistades (solicitada/aceptada) y enlaces de amistad |
 | `joint_lists`, `joint_list_members`, `joint_list_items`, `joint_list_history` | Listas conjuntas, sus miembros, contenidos e historial para el rollback |
 | `auth_tokens` | Tokens de un solo uso (recuperar contraseña, verificar correo) |
-| `notifications` | Avisos de novedades por persona (`dedupe_key` única, `seen_at`) |
+| `notifications` | Avisos de novedades por persona (`dedupe_key` única, `seen_at`, `dismissed_at`: el aviso eliminado se conserva oculto para que no se vuelva a crear) |
 | `content.news`, `user_content.news_base` | Instantánea de novedades de cada contenido (compartida) y lo que ya se conocía cuando la persona lo añadió |
 
 ## Proveedores externos y resiliencia

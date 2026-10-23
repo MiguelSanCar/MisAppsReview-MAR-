@@ -246,4 +246,12 @@ export const MIGRATIONS: { version: number; name: string; sql: string }[] = [
       UPDATE content SET source = 'mal' WHERE source = 'jikan';
     `,
   },
+  {
+    version: 16,
+    name: 'notificaciones descartadas',
+    sql: `
+      -- Aviso descartado por la persona: no se muestra, pero la fila se conserva para que (user_id, dedupe_key) no lo vuelva a crear.
+      ALTER TABLE notifications ADD COLUMN dismissed_at TEXT;
+    `,
+  },
 ];

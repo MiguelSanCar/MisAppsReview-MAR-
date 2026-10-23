@@ -2,6 +2,12 @@
 
 Versiones 0.x según el roadmap: fase N completada = versión 0.(N+1).0.
 
+## 1.16.1 · 2026-10-23 · Notificaciones: «Visto», eliminar y arrastrar
+### Añadido
+- Panel de notificaciones: botón «Visto» arriba (con el número de pendientes) que marca todas como vistas; ya no se marcan solas al abrir la campana.
+- Cada aviso tiene una «×» para eliminarlo y también se elimina arrastrándolo a derecha o izquierda; la tarjeta nunca sale visualmente del cuadro.
+- `DELETE /api/notifications/:id`. Migración 16: `notifications.dismissed_at` (el aviso eliminado queda oculto y no se regenera).
+
 ## 1.16.0 · 2026-10-17 · Importar desde MyAnimeList
 ### Añadido
 - **Importar la lista de anime de MyAnimeList** a «Mi lista» desde Ajustes › Mi perfil › «Importar de MyAnimeList», de dos formas: por **nombre de usuario** (solo listas públicas) o subiendo el **fichero de exportación** de MAL (`myanimelist.net/panel.php?go=export`, `.xml` o `.xml.gz`), que sirve también para listas privadas. Antes de escribir nada se muestra una vista previa con los recuentos (se añaden, se actualizan, sin cambios y ajustados por no estrenados) y unos ejemplos; la importación se confirma aparte. Es puntual y se puede repetir.

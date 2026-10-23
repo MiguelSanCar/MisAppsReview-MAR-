@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { all, get, run } from '../db';
 import { newsText } from '../domain/news';
+import { HttpError } from '../http';
 import { isChecking, requestNewsRefresh } from '../news';
 import { requireAuth, uid } from './auth';
 
@@ -35,7 +36,7 @@ const FROM = `FROM notifications n
   LEFT JOIN user_content uc ON uc.user_id = n.user_id AND uc.content_id = n.content_id
   JOIN content c ON c.id = n.content_id
   LEFT JOIN content rc ON rc.id = n.related_content_id
-  WHERE n.user_id = ? AND (uc.user_id IS NOT NULL OR n.kind = 'movie_removed')`;
+  WHERE n.user_id = ? AND n.dismissed_at IS NULL AND (uc.user_id IS NOT NULL OR n.kind = 'movie_removed')`;
 
 notificationsRouter.get('/', (req, res) => {
   const me = uid(req);
@@ -69,8 +70,21 @@ notificationsRouter.get('/', (req, res) => {
   });
 });
 
-/** Marca todo como visto (al abrir la campana). */
+/** Marca todo como visto (botón «Visto» del panel). */
 notificationsRouter.post('/seen', (req, res) => {
   const { changes } = run('UPDATE notifications SET seen_at = ? WHERE user_id = ? AND seen_at IS NULL', [new Date().toISOString(), uid(req)]);
   res.json({ ok: true, marked: changes });
+});
+
+/** Elimina un aviso (botón «×» o arrastrarlo): queda visto y oculto; la fila se conserva para que no se vuelva a crear. */
+notificationsRouter.delete('/:id', (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id < 1) throw new HttpError(400, 'Notificación no válida');
+  const now = new Date().toISOString();
+  const { changes } = run(
+    'UPDATE notifications SET dismissed_at = ?, seen_at = COALESCE(seen_at, ?) WHERE id = ? AND user_id = ? AND dismissed_at IS NULL',
+    [now, now, id, uid(req)],
+  );
+  if (!changes) throw new HttpError(404, 'Notificación no encontrada');
+  res.json({ ok: true });
 });
